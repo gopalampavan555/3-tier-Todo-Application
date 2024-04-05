@@ -1,4 +1,4 @@
-# three-tier-eks-iac
+# 3-tier-app
 
 # Prerequisite 
 
@@ -15,10 +15,6 @@ helm repo update
 
 **Install/update latest AWS CLI:** (make sure install v2 only)
 https://aws.amazon.com/cli/
-
-**Refer to below Youtube Video Tutorial**
-
-[![YouTube Video](https://img.youtube.com/vi/ebSAb-ERqAM/maxresdefault.jpg)](https://www.youtube.com/watch?v=ebSAb-ERqAM)
 
 
 #update the Kubernetes context
@@ -53,49 +49,23 @@ kubectl logs -f -n kube-system \
   --region us-west-2 \
   --profile eks-admin -->
 
-
-# Buid Docker image :
-**For Mac:**
-
-```
-export DOCKER_CLI_EXPERIMENTAL=enabled
-aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/w8u5e4v2
-```
-
-Buid Front End :
-
-```
-docker buildx build --platform linux/amd64 -t workshop-frontend:v1 . 
-docker tag workshop-frontend:v1 public.ecr.aws/w8u5e4v2/workshop-frontend:v1
-docker push public.ecr.aws/w8u5e4v2/workshop-frontend:v1
-```
-
-
-Buid Back End :
-
-```
-docker buildx build --platform linux/amd64 -t workshop-backend:v1 . 
-docker tag workshop-backend:v1 public.ecr.aws/w8u5e4v2/workshop-backend:v1
-docker push public.ecr.aws/w8u5e4v2/workshop-backend:v1
-```
-
 **For Linux/Windows:**
 
 Buid Front End :
 
 ```
-docker build -t workshop-frontend:v1 . 
-docker tag workshop-frontend:v1 public.ecr.aws/w8u5e4v2/workshop-frontend:v1
-docker push public.ecr.aws/w8u5e4v2/workshop-frontend:v1
+docker build -t frontend:latest . 
+docker tag frontend:latest public.ecr.aws/w0r5j4b6/frontend:latest
+docker push public.ecr.aws/w0r5j4b6/frontend:latest
 ```
 
 
 Buid Back End :
 
 ```
-docker build -t workshop-backend:v1 . 
-docker tag workshop-backend:v1 public.ecr.aws/w8u5e4v2/workshop-backend:v1
-docker push public.ecr.aws/w8u5e4v2/workshop-backend:v1
+docker build -t backend:latest . 
+docker tag backend:latest public.ecr.aws/w0r5j4b6/backend:latest
+docker push public.ecr.aws/w0r5j4b6/backend:latest
 ```
 
 **Update Kubeconfig**
@@ -145,44 +115,54 @@ Finally create the final load balancer to allow internet traffic:
 kubectl apply -f full_stack_lb.yaml
 ```
 
+**Setup ALB controller for cluster**
+```
+curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.5.4/docs/install/iam_policy.json
+aws iam create-policy --policy-name AWSLoadBalancerControllerIAMPolicy --policy-document file://iam_policy.json
+eksctl utils associate-iam-oidc-provider --region=us-west-2 --cluster=three-tier-cluster --approve
+eksctl create iamserviceaccount --cluster=three-tier-cluster --namespace=kube-system --name=aws-load-balancer-controller --role-name AmazonEKSLoadBalancerControllerRole --attach-policy-arn=arn:aws:iam::<give you aws account number>:policy/AWSLoadBalancerControllerIAMPolicy --approve --region=us-west-2
+sudo snap install helm --classic
+helm repo add eks https://aws.github.io/eks-charts
+helm repo update eks
+helm install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system --set clusterName=my-cluster --set serviceAccount.create=false --set serviceAccount.name=aws-load-balancer-controller
+kubectl get deployment -n kube-system aws-load-balancer-controller
+kubectl apply -f full_stack_lb.yaml
+```
 
 # Any issue with the pods ? check logs:
 ```
-kubectl logs -f POD_ID -f
+kubectl describe pod <podname> -n <namespace>
+kubectl logs <podname> <contaniername> -n <namespace>
+kubectl exec -it mongodb-7f58c5f5d9-bv9r5 -- /bin/bash
 ```
 
 
-# Grafana setup 
+# Prometheus and grafana setup 
 
-**Verify Services**
 ```
+helm repo add stable https://charts.helm.sh/stable
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+kubectl create namespace prometheus
+helm install stable prometheus-community/kube-prometheus-stack -n prometheus
+kubectl get pods -n prometheus
 kubectl get svc -n prometheus
+kubectl edit svc stable-kube-prometheus-sta-prometheus -n prometheus
+kubectl get svc -n prometheus
+kubectl get pods -n prometheus
+kubectl edit svc stable-grafana -n prometheus
+kubectl get svc -n prometheus
+kubectl get secret --namespace prometheus stable-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 ```
-
-**edit the Prometheus-grafana service:**
-```
-kubectl edit svc prometheus-grafana -n prometheus
-```
-
-**change ‘type: ClusterIP’ to 'LoadBalancer'**
-
-Username: admin
-Password: prom-operator
-
-
-Import Dashboard ID: 1860
-
-Exlore more at: https://grafana.com/grafana/dashboards/
 
 # Destroy Kubernetes resources and cluster
 ```
 cd ./k8s_manifests
 kubectl delete -f -f
 ```
+
 **Remove AWS Resources to stop billing**
 ```
-cd terraform
-terraform destroy --auto-approve
+eksctl delete cluster --name three-tier-cluster --region us-west-2
 ```
 
 
