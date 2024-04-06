@@ -1,0 +1,59 @@
+pipeline {
+    agent any
+    
+    environment {
+        APP_FNAME = "ui"
+        APP_BNAME = "backend"
+        IMAGE_TAG = "${TAG_NAME}" // Retrieve the tag name passed from CI pipeline
+    }
+
+    stages {
+        stage('Clear Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+        
+        stage('Git Checkout') {
+            steps {
+                git branch: 'master', url: 'https://github.com/gopalampavan555/GitOps-3-tier-app.git'
+            }
+        }
+        
+        stage('Update Frontend Deployment Tags') {
+            steps {
+                script {
+                    sh """
+                    sed -i "s/\${APP_FNAME}.*/${APP_FNAME}:${IMAGE_TAG}/g" frontend-deployment.yaml
+                    """
+                }
+            }
+        }
+        
+        stage('Update Backend Deployment Tags') {
+            steps {
+                script {
+                    sh """
+                    sed -i "s/\${APP_BNAME}.*/${APP_BNAME}:${IMAGE_TAG}/g" backend-deployment.yaml
+                    """
+                }
+            }
+        }
+        
+        stage('Push Changed Deployment Files to GitHub') {
+            steps {
+                script {
+                    sh """
+                    git config --global user.name "gopalampavan555"
+                    git config --global user.email "gopalampavan555@gmail.com"
+                    git add .
+                    git commit -m "Update deployment manifests with new image tags"
+                    """
+                    withCredentials([gitUsernamePassword(credentialsId: 'git-hub', gitToolName: 'Default')]) {
+                       sh "git push https://github.com/gopalampavan555/GitOps-3-tier-app master"
+                    }   
+                }
+            }
+        }
+    }
+}
