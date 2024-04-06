@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: public.ecr.aws/w0r5j4b6/frontend:latest
+        image: kalyan555/frontend:latest #public.ecr.aws/w0r5j4b6/frontend:latest
         imagePullPolicy: Always
         env:
           - name: REACT_APP_BACKEND_URL
