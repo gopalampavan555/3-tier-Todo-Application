@@ -157,6 +157,24 @@ kubectl get svc -n prometheus
 kubectl get secret --namespace prometheus stable-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 ```
 
+#Refer---https://argo-cd.readthedocs.io/en/stable/cli_installation/
+** ArgoCD Installation on Kubernetes Cluster and Add EKS Cluster to ArgoCD**
+```
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl get pods -n argocd
+sudo curl --silent --location -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/v2.4.7/argocd-linux-amd64
+sudo chmod +x /usr/local/bin/argocd
+kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
+kubectl get svc -n argocd
+kubectl get secret argocd-initial-admin-secret -n argocd -o yaml
+echo WXVpLUg2LWxoWjRkSHFmSA== | base64 --decode
+argocd login a2255bb2bb33f438d9addf8840d294c5-785887595.ap-south-1.elb.amazonaws.com --username admin
+argocd cluster list
+kubectl config get-contexts
+argocd cluster add i-08b9d0ff0409f48e7@virtualtechbox-cluster.ap-south-1.eksctl.io --name virtualtechbox-eks-cluster
+```
+
 # Destroy Kubernetes resources and cluster
 ```
 cd ./k8s_manifests
