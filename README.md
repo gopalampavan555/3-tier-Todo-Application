@@ -4,7 +4,7 @@
 # Prerequisite 
 
 **Step 1: IAM Configuration**
-Create a user eks-admin with AdministratorAccess.
+Create a user eks-admin with AdministratorAccess. 
 Generate Security Credentials: Access Key and Secret Access Key.
 
 **Step 2: EC2 Setup**
