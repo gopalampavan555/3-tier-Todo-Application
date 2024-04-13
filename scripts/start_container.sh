@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+docker stop uiapp
+docker rm uiapp
+docker rmi kalyan555/ui
 # Pull the Docker image from Docker Hub
 docker pull kalyan555/ui
 
