@@ -5,4 +5,4 @@ set -e
 docker pull kalyan555/ui
 
 # Run the Docker image as a container
-docker run -d -p 3000:3000 kalyan555/ui
+docker run -d --name uiapp -p 3000:3000 kalyan555/ui
